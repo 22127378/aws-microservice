@@ -1,0 +1,22 @@
+# Local .terraform directory 
+.terraform/
+
+# Terraform state files 
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+
+# Các file biến nhạy cảm
+*.tfvars
+*.tfvars.json
+
+# Các file biến cục bộ
+override.tf
+override.tf.json
+_override.tf
+_override.tf.json
+
+# Terraform workspace state
+.terraform.tfstate.d/
