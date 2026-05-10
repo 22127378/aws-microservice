@@ -1,7 +1,7 @@
 # 1. Security Group cho Load Balancer (ALB)
 resource "aws_security_group" "alb_sg" {
   name        = "${var.project_name}-alb-sg"
-  description = "Chấp nhận traffic HTTP từ internet"
+  description = "Only HTTP from internet"
   vpc_id      = module.vpc.vpc_id
 
   # Cho phép mọi người truy cập vào port 80
@@ -28,7 +28,7 @@ resource "aws_security_group" "alb_sg" {
 # 2. Security Group cho Microservices (ECS Tasks)
 resource "aws_security_group" "ecs_sg" {
   name        = "${var.project_name}-ecs-sg"
-  description = "Chi chap nhan traffic tu Load Balancer"
+  description = "Only traffic from Load Balancer"
   vpc_id      = module.vpc.vpc_id
 
   # CHỈ cho phép traffic đến từ ALB Security Group
