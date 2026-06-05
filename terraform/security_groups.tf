@@ -31,12 +31,20 @@ resource "aws_security_group" "ecs_sg" {
   description = "Only traffic from Load Balancer"
   vpc_id      = module.vpc.vpc_id
 
-  # CHỈ cho phép traffic đến từ ALB Security Group
+  # CHỈ cho phép traffic đến từ ALB Security Group tới port 8080 (Frontend)
   ingress {
-    from_port       = 8080 # Giả sử app Docker của bạn chạy port 8080
+    from_port       = 8080
     to_port         = 8080
     protocol        = "tcp"
-    security_groups = [aws_security_group.alb_sg.id] # Đây chính là "Chaining"
+    security_groups = [aws_security_group.alb_sg.id]
+  }
+
+  # CHỈ cho phép traffic đến từ ALB Security Group tới port 5000 (Backend)
+  ingress {
+    from_port       = 5000
+    to_port         = 5000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
   }
 
   # Cho phép container đi ra internet (qua NAT Gateway) để tải resource

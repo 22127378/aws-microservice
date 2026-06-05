@@ -1,0 +1,11 @@
+terraform/
+.git/
+.github/
+node_modules/
+**/node_modules/
+.env
+.env.*
+*.env
+*.log
+deploy.ps1
+deploy.sh

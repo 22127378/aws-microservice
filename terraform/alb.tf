@@ -43,3 +43,39 @@ resource "aws_alb_listener" "http" {
     target_group_arn = aws_alb_target_group.app_tg.arn
   }
 }
+
+# 4. Tạo Target Group cho Backend (port 5000, health check /health)
+resource "aws_alb_target_group" "backend_tg" {
+  name        = "${var.project_name}-backend-tg"
+  port        = 5000
+  protocol    = "HTTP"
+  vpc_id      = module.vpc.vpc_id
+  target_type = "ip"
+
+  health_check {
+    healthy_threshold   = "3"
+    interval            = "30"
+    protocol            = "HTTP"
+    matcher             = "200"
+    timeout             = "3"
+    path                = "/health"
+    unhealthy_threshold = "2"
+  }
+}
+
+# 5. Định tuyến các request bắt đầu bằng /api/* sang Backend Target Group
+resource "aws_alb_listener_rule" "backend_rule" {
+  listener_arn = aws_alb_listener.http.arn
+  priority     = 10
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.backend_tg.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*"]
+    }
+  }
+}

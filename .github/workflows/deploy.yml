@@ -1,0 +1,73 @@
+name: Build & Deploy to AWS ECS
+
+on:
+  push:
+    branches:
+      - main # Chạy pipeline khi push code lên branch main
+
+permissions:
+  id-token: write # Bắt buộc để xác thực qua AWS OIDC
+  contents: read  # Bắt buộc để checkout source code
+
+env:
+  AWS_REGION: ap-southeast-1                           # Vùng AWS triển khai
+  ECS_CLUSTER: shop-microservice-cluster               # Tên ECS Cluster của bạn
+  FRONTEND_SERVICE: shop-microservice-service           # Tên Service ECS của Frontend
+  BACKEND_SERVICE: shop-microservice-backend-service   # Tên Service ECS của Backend
+  AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }} # Role ARN của AWS IAM OIDC
+
+jobs:
+  deploy:
+    name: Deploy Services
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout mã nguồn từ GitHub
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Xác thực với AWS bằng IAM OIDC (Không cần dùng Access/Secret Key cố định)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      # 3. Đăng nhập vào Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 4. Thiết lập tag cho Docker image bằng Git Short SHA
+      - name: Set Image Tag
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      # 5. Build, Tag và Push Frontend Image lên ECR
+      - name: Build and Push Frontend Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: shop-microservice-repo # Tên ECR Repo của Frontend
+          IMAGE_TAG: ${{ steps.vars.outputs.sha_short }}
+        run: |
+          docker build --platform linux/amd64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      # 6. Build, Tag và Push Backend Image lên ECR
+      - name: Build and Push Backend Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: shop-microservice-backend-repo # Tên ECR Repo của Backend
+          IMAGE_TAG: ${{ steps.vars.outputs.sha_short }}
+        run: |
+          docker build --platform linux/amd64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest -f backend/Dockerfile backend/
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      # 7. Triển khai (Force Deploy) lên ECS Service
+      - name: Update ECS Services
+        run: |
+          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.FRONTEND_SERVICE }} --force-new-deployment --region ${{ env.AWS_REGION }}
+          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.BACKEND_SERVICE }} --force-new-deployment --region ${{ env.AWS_REGION }}

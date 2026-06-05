@@ -20,3 +20,27 @@ _override.tf.json
 
 # Terraform workspace state
 .terraform.tfstate.d/
+
+# Thư mục node_modules của các package
+node_modules/
+**/node_modules/
+
+# File môi trường nhạy cảm (Chứa thông tin đăng nhập, API key, AWS secret)
+.env
+.env.*
+*.env
+
+# Thư mục cấu hình của các IDE (VSCode, WebStorm, v.v.)
+.vscode/
+.idea/
+
+# Nhật ký lỗi hệ thống và Node.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# File rác hệ điều hành
+.DS_Store
+Thumbs.db
+desktop.ini

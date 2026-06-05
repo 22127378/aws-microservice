@@ -31,3 +31,36 @@ resource "aws_ecr_lifecycle_policy" "repo_policy" {
     }]
   })
 }
+
+# --- ECR cho Backend Service ---
+resource "aws_ecr_repository" "backend_repo" {
+  name                 = "${var.project_name}-backend-repo"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Name = "${var.project_name}-backend-ecr"
+  }
+}
+
+resource "aws_ecr_lifecycle_policy" "backend_repo_policy" {
+  repository = aws_ecr_repository.backend_repo.name
+
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Giữ lại 5 ảnh mới nhất, xóa ảnh cũ"
+      selection = {
+        tagStatus     = "any"
+        countType     = "imageCountMoreThan"
+        countNumber   = 5
+      }
+      action = {
+        type = "expire"
+      }
+    }]
+  })
+}
